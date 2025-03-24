@@ -41,6 +41,7 @@ namespace XComStreamApp
                                             "channel:read:subscriptions",    // Check who subs are for raffles
                                             "channel:read:vips",             // Check who VIPs are for raffles
                                             "chat:read",                     // Watch incoming messages for chat commands
+                                            "user:read:chat",                // Same as chat:read but for EventSub for some reason
                                             "moderator:manage:banned_users", // Timing out users who lose an event
                                             "moderation:read",               // Check who moderators are for raffles
                                             "moderator:read:chatters",       // Check who chatters are for raffles
@@ -53,19 +54,21 @@ namespace XComStreamApp
         private ILoggerFactory loggerFactory;
         private ILogger<XComStreamAppForm> logger;
 
-        private XComModService? XComModServiceConnection = null;
+        private TwitchEventSubService eventSubService;
 
         private System.Timers.Timer refreshChannelStateChannelInfoTimer = new System.Timers.Timer(TimeSpan.FromMinutes(5));
         private System.Timers.Timer refreshChannelStateChattersTimer = new System.Timers.Timer(TimeSpan.FromSeconds(65));
         private System.Timers.Timer refreshChannelStatePollTimer = new System.Timers.Timer(TimeSpan.FromSeconds(65));
         private System.Timers.Timer validateAccessTokenTimer = new System.Timers.Timer(TimeSpan.FromMinutes(30)); // needs to be 30 minutes so we refresh token before it expires
 
-        public XComStreamAppForm(ILoggerFactory loggerFactory)
+        public XComStreamAppForm(ILoggerFactory loggerFactory, TwitchEventSubService eventSubService)
         {
             InitializeComponent();
 
             this.loggerFactory = loggerFactory;
             logger = loggerFactory.CreateLogger<XComStreamAppForm>();
+
+            this.eventSubService = eventSubService;
 
             // Don't show the login button until after we check for stored credentials
             btnTwitchLogInOrOut.Visible = false;
@@ -217,12 +220,6 @@ namespace XComStreamApp
             TwitchState.ChatClient.Connect();
         }
 
-        private void InitializeTwitchPubSubClient()
-        {
-            TwitchState.PubSubConnection = new TwitchPubSubHandler(loggerFactory, this);
-            TwitchState.PubSubConnection.Connect();
-        }
-
         /// <summary>
         /// Attempts to load a stored access token and refresh token from disk.
         /// </summary>
@@ -354,8 +351,9 @@ namespace XComStreamApp
             TwitchState.ChatClient?.Disconnect();
             TwitchState.ChatClient = null;
 
-            TwitchState.PubSubConnection?.Disconnect();
-            TwitchState.PubSubConnection = null;
+            // Disconnect, with no corresponding reconnect call elsewhere. The event sub service will periodically check
+            // if there's an active Twitch API connection, and will reconnect on its own.
+            _ = eventSubService.DisconnectFromTwitch();
 
             TwitchState.Channel = null;
 
@@ -393,7 +391,6 @@ namespace XComStreamApp
 
         private void OnFormClosing(object sender, FormClosingEventArgs e)
         {
-            XComModServiceConnection?.Close();
         }
 
         private void Client_OnConnected(object? sender, OnConnectedArgs e)
@@ -526,10 +523,6 @@ namespace XComStreamApp
                     TwitchState.ChatClient?.Disconnect();
                     TwitchState.ChatClient = null;
                     InitializeTwitchChatClient();
-
-                    TwitchState.PubSubConnection?.Disconnect();
-                    TwitchState.PubSubConnection = null;
-                    InitializeTwitchPubSubClient();
 
                     Invoke(() =>
                     {

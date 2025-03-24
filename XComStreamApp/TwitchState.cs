@@ -52,8 +52,6 @@ namespace XComStreamApp
         /// </summary>
         public static TwitchClient? ChatClient = null;
 
-        public static TwitchPubSubHandler? PubSubConnection = null;
-
         /// <summary>
         /// The current state of the channel we're connected to, if any.
         /// </summary>

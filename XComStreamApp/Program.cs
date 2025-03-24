@@ -5,6 +5,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using TwitchLib.EventSub.Websockets.Core.Handler;
+using TwitchLib.EventSub.Websockets.Extensions;
+using XComStreamApp.Services;
+using XComStreamApp.Services.EventSub;
 
 namespace XComStreamApp
 {
@@ -20,6 +24,7 @@ namespace XComStreamApp
         {
             var webApp = StartWebApplication();
             var loggerFactory = webApp.Services.GetRequiredService<ILoggerFactory>();
+            var eventSubService = webApp.Services.GetRequiredService<TwitchEventSubService>();
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -32,7 +37,7 @@ namespace XComStreamApp
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-            Form = new XComStreamAppForm(loggerFactory);
+            Form = new XComStreamAppForm(loggerFactory, eventSubService);
             Application.Run(Form);
         }
 
@@ -52,6 +57,16 @@ namespace XComStreamApp
 
             builder.Services.AddControllers();
             builder.Services.AddSerilog();
+
+            // Custom EventSub notification handlers to handle events that TwitchLib doesn't support
+            builder.Services.AddSingleton(typeof(INotificationHandler), typeof(ChatMessageDeletedHandler));
+
+            builder.Services.AddTwitchLibEventSubWebsockets();
+
+            // Trick to make the service retrievable with GetRequiredService later
+            // https://stackoverflow.com/a/65552373
+            builder.Services.AddSingleton<TwitchEventSubService>();
+            builder.Services.AddHostedService(p => p.GetRequiredService<TwitchEventSubService>());
 
             var app = builder.Build();
             app.UseMiddleware<DeChunkerMiddleware>();

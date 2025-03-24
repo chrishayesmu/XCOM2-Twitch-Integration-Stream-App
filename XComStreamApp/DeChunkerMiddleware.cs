@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace XComStreamApp
 {
+    // Simple middleware that prevents chunked encoding in responses to XCOM 2, to simplify the HTTP implementation over there
     public class DeChunkerMiddleware
     {
         private readonly RequestDelegate _next;
