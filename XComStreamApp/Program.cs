@@ -74,17 +74,21 @@ namespace XComStreamApp
 
             Task.Run(() => app.Run("http://localhost:5000"));
 
+            Log.Logger.Information("Initialization complete.");
+
             return app;
         }
 
         static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs args)
         {
             var e = args.ExceptionObject as Exception;
+            Log.Logger.Error("Unhandled exception: {e}", e);
             MessageBox.Show(e.Message, "Unhandled Exception");
         }
 
         static void HandleUIThreadException(object sender, ThreadExceptionEventArgs e)
         {
+            Log.Logger.Error("Unhandled UI thread exception: {e}", e.Exception);
             MessageBox.Show(e.Exception.Message, "Unhandled Thread Exception");
         }
     }

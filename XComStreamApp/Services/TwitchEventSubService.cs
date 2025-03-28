@@ -10,6 +10,7 @@ using TwitchLib.EventSub.Websockets.Core.EventArgs.Channel;
 using static XComStreamApp.Models.Twitch.Chat.TwitchUser;
 using XComStreamApp.Models.Twitch.Chat;
 using XComStreamApp.Models;
+using XComStreamApp.Models.XComMod;
 
 namespace XComStreamApp.Services
 {
@@ -31,11 +32,39 @@ namespace XComStreamApp.Services
             _eventSubWebsocketClient.WebsocketDisconnected += OnWebsocketDisconnected;
             _eventSubWebsocketClient.WebsocketReconnected += OnWebsocketReconnected;
             _eventSubWebsocketClient.ErrorOccurred += OnErrorOccurred;
+            _eventSubWebsocketClient.ChannelPointsCustomRewardRedemptionAdd += OnChannelPointsRewardRedeemed;
 
             _eventSubWebsocketClient.ChannelSubscribe += OnChannelSubscribe;
 
             connectToEventSubTimer.AutoReset = false;
             connectToEventSubTimer.Elapsed += TryConnectToEventSub;
+        }
+
+        private async Task OnChannelPointsRewardRedeemed(object sender, ChannelPointsCustomRewardRedemptionArgs args)
+        {
+            var e = args.Notification.Payload.Event;
+
+            if (TwitchState.ConnectedUser == null || TwitchState.Channel == null)
+            {
+                return;
+            }
+
+            Program.Form.AddEvent(new SystemEvent() 
+            { 
+                Description = $"{e.UserName} redeemed \"{e.Reward.Title}\" (reward ID: {e.Reward.Id})",
+                Timestamp = DateTime.Now,
+                TwitchName = e.UserName,
+                Type = SystemEvent.EventType.ChatEvent
+            });
+
+            TwitchState.PendingGameEvents.Enqueue(new ChannelPointRedeemEvent()
+            {
+                ViewerLogin = e.UserLogin,
+                ViewerName = e.UserName,
+                ViewerInput = e.UserInput,
+                RewardId = e.Reward.Id,
+                RewardTitle = e.Reward.Title
+            });
         }
 
         public async Task DisconnectFromTwitch()
@@ -82,16 +111,12 @@ namespace XComStreamApp.Services
 
             TwitchState.Channel.SubscribersByUserId[subbedUser.UserId] = subbedUser;
 
-            // Upsert this user into the chatters list, since subbing implies they're present in chat
+            // Update this user's sub tier, if they're in chat. (They might not be, e.g. if they're subscribing from a console device)
             var existingUser = TwitchState.Channel.Chatters.FirstOrDefault(chatter => chatter.UserId == subbedUser.UserId);
 
             if (existingUser != null)
             {
                 existingUser.SubTier = subbedUser.SubTier;
-            }
-            else
-            {
-                TwitchState.Channel.Chatters.Add(subbedUser);
             }
         }
 
@@ -137,6 +162,7 @@ namespace XComStreamApp.Services
                 };
 
                 await TwitchState.API.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.subscribe", "1", conditions, EventSubTransportMethod.Websocket, _eventSubWebsocketClient.SessionId);
+                await TwitchState.API.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.channel_points_custom_reward_redemption.add", "1", conditions, EventSubTransportMethod.Websocket, _eventSubWebsocketClient.SessionId);
 
                 conditions.Add("user_id", TwitchState.ConnectedUser.Id);
                 await TwitchState.API.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.chat.message_delete", "1", conditions, EventSubTransportMethod.Websocket, _eventSubWebsocketClient.SessionId);

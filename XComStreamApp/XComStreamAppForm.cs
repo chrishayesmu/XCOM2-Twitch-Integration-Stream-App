@@ -38,6 +38,7 @@ namespace XComStreamApp
 
         private readonly string[] Scopes = ["channel:manage:polls",          // Read/create polls (mirror game polls to channel, sync channel poll to game state, check if a poll is running before making one)
                                             "channel:moderate",              // Needed to get PubSub events when a chat message is deleted by a mod
+                                            "channel:read:redemptions",      // Get notified when channel points are redeemed
                                             "channel:read:subscriptions",    // Check who subs are for raffles
                                             "channel:read:vips",             // Check who VIPs are for raffles
                                             "chat:read",                     // Watch incoming messages for chat commands
