@@ -55,6 +55,7 @@ namespace XComStreamApp
         private ILoggerFactory loggerFactory;
         private ILogger<XComStreamAppForm> logger;
 
+        private TwitchApiService twitchApiService;
         private TwitchEventSubService eventSubService;
 
         private System.Timers.Timer refreshChannelStateChannelInfoTimer = new System.Timers.Timer(TimeSpan.FromMinutes(5));
@@ -62,13 +63,14 @@ namespace XComStreamApp
         private System.Timers.Timer refreshChannelStatePollTimer = new System.Timers.Timer(TimeSpan.FromSeconds(65));
         private System.Timers.Timer validateAccessTokenTimer = new System.Timers.Timer(TimeSpan.FromMinutes(30)); // needs to be 30 minutes so we refresh token before it expires
 
-        public XComStreamAppForm(ILoggerFactory loggerFactory, TwitchEventSubService eventSubService)
+        public XComStreamAppForm(ILoggerFactory loggerFactory, TwitchApiService twitchApiService, TwitchEventSubService eventSubService)
         {
             InitializeComponent();
 
             this.loggerFactory = loggerFactory;
             logger = loggerFactory.CreateLogger<XComStreamAppForm>();
 
+            this.twitchApiService = twitchApiService;
             this.eventSubService = eventSubService;
 
             // Don't show the login button until after we check for stored credentials
@@ -192,7 +194,7 @@ namespace XComStreamApp
             TwitchState.Channel = new Models.Twitch.ChannelState();
 
             // We need the subscriber info before we can correctly populate the chatters list
-            var subscribers = await TwitchApiService.GetSubscribers(TwitchState.ConnectedUser!.Id);
+            var subscribers = await twitchApiService.GetSubscribers(TwitchState.ConnectedUser!.Id);
             TwitchState.Channel.SubscribersByUserId = subscribers.ToDictionary(user => user.UserId);
 
             RefreshChannelChatters();
@@ -341,7 +343,7 @@ namespace XComStreamApp
             if (!string.IsNullOrEmpty(TwitchState.AccessToken))
             {
                 logger.LogInformation("Attempting to revoke current access token");
-                _ = TwitchApiService.RevokeAccessToken(TwitchState.AccessToken, TwitchState.AppClientId);
+                _ = twitchApiService.RevokeAccessToken(TwitchState.AccessToken, TwitchState.AppClientId);
             }
 
             TwitchState.API = null;
@@ -547,7 +549,7 @@ namespace XComStreamApp
         {
             logger.LogInformation("Attempting to refresh access token");
 
-            var refreshResponse = await TwitchApiService.RefreshAccessToken(refreshToken, TwitchState.AppClientId);
+            var refreshResponse = await twitchApiService.RefreshAccessToken(refreshToken, TwitchState.AppClientId);
 
             // Null response means we failed to refresh
             if (refreshResponse == null)
@@ -573,7 +575,7 @@ namespace XComStreamApp
 
             try
             {
-                var chatters = await TwitchApiService.GetChatters(TwitchState.ConnectedUser.Id, TwitchState.AccessToken, TwitchState.AppClientId);
+                var chatters = await twitchApiService.GetChatters(TwitchState.ConnectedUser.Id, TwitchState.AccessToken, TwitchState.AppClientId);
 
                 // If we have subscriber data for a chatter, just use that user object instead; everything else will match
                 for (int i = 0; i < chatters.Count; i++)

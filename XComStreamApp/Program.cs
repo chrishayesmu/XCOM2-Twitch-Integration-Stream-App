@@ -24,6 +24,7 @@ namespace XComStreamApp
         {
             var webApp = StartWebApplication();
             var loggerFactory = webApp.Services.GetRequiredService<ILoggerFactory>();
+            var twitchApiService = webApp.Services.GetRequiredService<TwitchApiService>();
             var eventSubService = webApp.Services.GetRequiredService<TwitchEventSubService>();
 
             Application.EnableVisualStyles();
@@ -37,7 +38,7 @@ namespace XComStreamApp
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-            Form = new XComStreamAppForm(loggerFactory, eventSubService);
+            Form = new XComStreamAppForm(loggerFactory, twitchApiService, eventSubService);
             Application.Run(Form);
         }
 
@@ -62,6 +63,8 @@ namespace XComStreamApp
             builder.Services.AddSingleton(typeof(INotificationHandler), typeof(ChatMessageDeletedHandler));
 
             builder.Services.AddTwitchLibEventSubWebsockets();
+
+            builder.Services.AddSingleton<TwitchApiService>();
 
             // Trick to make the service retrievable with GetRequiredService later
             // https://stackoverflow.com/a/65552373
