@@ -193,9 +193,10 @@ namespace XComStreamApp
         {
             TwitchState.Channel = new Models.Twitch.ChannelState();
 
-            // We need the subscriber info before we can correctly populate the chatters list
+            // We need the subscriber info before we can correctly populate the chatters list. We have to do DistinctBy
+            // for some reason even though the Twitch response shouldn't include duplicates.
             var subscribers = await twitchApiService.GetSubscribers(TwitchState.ConnectedUser!.Id);
-            TwitchState.Channel.SubscribersByUserId = subscribers.ToDictionary(user => user.UserId);
+            TwitchState.Channel.SubscribersByUserId = subscribers.DistinctBy(user => user.UserId).ToDictionary(user => user.UserId);
 
             RefreshChannelChatters();
             RefreshChannelInfo();
