@@ -15,17 +15,19 @@ namespace XComStreamApp.Models.XComMod
         [JsonPropertyName("user_login")]
         public string ViewerLogin { get; set; } = "";
 
+        private string _command = "";
         /// <summary>
         /// The command itself, e.g. if a viewer does "!xsay", then this would be "xsay".
         /// </summary>
         [JsonPropertyName("command")]
-        public string Command { get; set; } = "";
+        public string Command { get => _command; set => SafeStringSet(ref _command, value); }
 
+        private string _body = "";
         /// <summary>
         /// The body of the command, e.g. if the chat message is "!xsay some text",  then this would be "some text".
         /// </summary>
         [JsonPropertyName("body")]
-        public string Body { get; set; } = "";
+        public string Body { get => _body; set => SafeStringSet(ref _body, value); }
 
         /// <summary>
         /// The unique ID of the message, which may be needed if the message is later deleted.
