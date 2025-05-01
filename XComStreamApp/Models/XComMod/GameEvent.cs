@@ -13,6 +13,8 @@ namespace XComStreamApp.Models.XComMod
     [JsonDerivedType(typeof(CreatePollEvent), typeDiscriminator: "createPoll")]
     public abstract class GameEvent
     {
+        public DateTime TimeCreated { get; set; } = DateTime.Now;
+
         // Replaces certain characters that are known to cause UE3's JSON parser to crash.
         protected void SafeStringSet(ref string field, string value)
         {
