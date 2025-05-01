@@ -75,7 +75,7 @@ namespace XComStreamApp
             app.UseMiddleware<DeChunkerMiddleware>();
             app.MapControllers();
 
-            Task.Run(() => app.Run("http://localhost:5000"));
+            Task.Run(() => app.Run("http://localhost:51982"));
 
             Log.Logger.Information("Initialization complete.");
 
