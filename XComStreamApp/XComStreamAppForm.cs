@@ -146,6 +146,9 @@ namespace XComStreamApp
 
                 targetTextbox.SelectionFont = originalFont;
                 targetTextbox.AppendText(eventString);
+
+                targetTextbox.SelectionStart = targetTextbox.Text.Length;
+                targetTextbox.ScrollToCaret();
             });
         }
 

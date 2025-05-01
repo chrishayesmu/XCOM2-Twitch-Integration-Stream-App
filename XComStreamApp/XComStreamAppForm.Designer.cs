@@ -249,7 +249,6 @@ namespace XComStreamApp
             // 
             txtChatEvents.Anchor =  AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             txtChatEvents.DetectUrls = false;
-            txtChatEvents.Enabled = false;
             txtChatEvents.Location = new Point(3, 168);
             txtChatEvents.Name = "txtChatEvents";
             txtChatEvents.ReadOnly = true;
