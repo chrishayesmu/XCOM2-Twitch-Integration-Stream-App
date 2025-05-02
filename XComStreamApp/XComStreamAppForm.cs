@@ -488,10 +488,15 @@ namespace XComStreamApp
 
                 logger.LogInformation("Attempting to download Twitch emote {emoteCode}", emoteCode);
 
+                // Some emotes on Twitch will trigger a libpng error and crash the game:
+                //
+                //     "PNG Warning: iCCP: known incorrect sRGB profile"
+                //
+                // To avoid this, we need to run the image through ImageMagick, which will automatically remove
+                // any invalid color profiles.
                 using var httpStream = await httpClient.GetStreamAsync(imageUrl);
-                using var fileStream = new FileStream(outputFilePath, FileMode.OpenOrCreate);
-
-                await httpStream.CopyToAsync(fileStream);
+                var magickImage = new ImageMagick.MagickImage(httpStream);
+                await magickImage.WriteAsync(outputFilePath);
             }
         }
 
