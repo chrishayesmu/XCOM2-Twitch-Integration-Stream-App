@@ -194,6 +194,8 @@ namespace XComStreamApp.Controllers
 
             var response = await TwitchState.API.Helix.Polls.CreatePollAsync(request);
 
+            logger.LogInformation("Poll created: ID is {id}, status is {status}, duration is {duration}, startedAt is {startedAt}", response.Data[0].Id, response.Data[0].Status, response.Data[0].DurationSeconds, response.Data[0].StartedAt);
+
             // TODO: update the channel state with our new poll
 
             Program.Form.AddEvent(new SystemEvent()
