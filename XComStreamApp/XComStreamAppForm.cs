@@ -477,7 +477,17 @@ namespace XComStreamApp
         {
             foreach (var emote in emoteSet.Emotes)
             {
-                string emoteCode = emote.Name;
+                // Encode characters which can't be in Windows filenames
+                string emoteCode = emote.Name.Replace("<", "TIENCLT")  // TI encoded less than
+                                             .Replace(">", "TIENCGT")  // TI encoded greater than
+                                             .Replace("\\", "TIENCBS") // TI encoded backslash
+                                             .Replace("/", "TIENCFS")  // TI encoded forward slash
+                                             .Replace(":", "TIENCC")   // TI encoded colon
+                                             .Replace("*", "TIENCA")   // TI encoded asterisk
+                                             .Replace("?", "TIENCQST") // TI encoded question mark
+                                             .Replace("\"", "TIENCQT") // TI encoded quote
+                                             .Replace("|", "TIENCP");  // TI encoded pipe
+
                 string imageUrl = emote.ImageUrl.Substring(0, emote.ImageUrl.Length - 3) + "3.0"; // replace "1.0" with "3.0" to get the full-sized emote
                 string outputFilePath = Path.Combine(EmoteFolderPath, $"TwitchEmote_{emoteCode}.png");
 
@@ -486,7 +496,7 @@ namespace XComStreamApp
                     continue;
                 }
 
-                logger.LogInformation("Attempting to download Twitch emote {emoteCode}", emoteCode);
+                logger.LogInformation("Attempting to download Twitch emote {emoteCode}", emote.Name);
 
                 // Some emotes on Twitch will trigger a libpng error and crash the game:
                 //
@@ -494,9 +504,16 @@ namespace XComStreamApp
                 //
                 // To avoid this, we need to run the image through ImageMagick, which will automatically remove
                 // any invalid color profiles.
-                using var httpStream = await httpClient.GetStreamAsync(imageUrl);
-                var magickImage = new ImageMagick.MagickImage(httpStream);
-                await magickImage.WriteAsync(outputFilePath);
+                try
+                {
+                    using var httpStream = await httpClient.GetStreamAsync(imageUrl);
+                    var magickImage = new ImageMagick.MagickImage(httpStream);
+                    await magickImage.WriteAsync(outputFilePath);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("Error occurred when downloading emote {emoteCode}. This emote will be skipped. {ex}", emote.Name, ex);
+                }
             }
         }
 
