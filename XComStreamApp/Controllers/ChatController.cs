@@ -24,6 +24,7 @@ namespace XComStreamApp.Controllers
                 return BadRequest("Twitch connection not initialized yet");
             }
 
+            logger.LogInformation($"Returning {TwitchState.Channel.Chatters.Count} chatters");
             return Ok(TwitchState.Channel.Chatters);
         }
     }

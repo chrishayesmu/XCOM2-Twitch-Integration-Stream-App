@@ -603,6 +603,10 @@ namespace XComStreamApp
             {
                 var chatters = await twitchApiService.GetChatters(TwitchState.ConnectedUser.Id, TwitchState.AccessToken, TwitchState.AppClientId);
 
+                // Non-ASCII names don't work well in-game due to the game using UTF-16 while our response is in UTF-8.
+                // I suspect it may be causing some crashes or other issues.
+                chatters = chatters.Where(c => c.UserName.All(char.IsAscii) && c.UserLogin.All(char.IsAscii)).ToList();
+
                 // If we have subscriber data for a chatter, just use that user object instead; everything else will match
                 for (int i = 0; i < chatters.Count; i++)
                 {
