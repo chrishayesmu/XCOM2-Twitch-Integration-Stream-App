@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿#if DEBUG
+#define MOCK_CHATTERS
+#endif
+
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -22,6 +26,10 @@ namespace XComStreamApp.Services
     {
         private static HttpClient httpClient = new HttpClient();
 
+#if MOCK_CHATTERS
+        private static Random RandomGen = new Random();
+#endif
+
         /// <summary>
         /// Retrieves all chatters currently connected to a broadcaster's chat room.
         /// </summary>
@@ -29,6 +37,33 @@ namespace XComStreamApp.Services
         /// <remarks>This is used because Twitchlib.Helix.GetChattersAsync doesn't return users' display names.</remarks>
         public async Task<List<TwitchUser>> GetChatters(string broadcasterId, string accessToken, string clientId)
         {
+#if MOCK_CHATTERS
+            var chatters = new List<TwitchUser>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                var userLogin = GenerateString("123456789abcdefghijklmnopqrstuvwxyz_", 5, 30);
+
+                if (i == 0)
+                {
+                    userLogin = "레비아탄12";
+                }
+                else if (i == 1)
+                {
+                    userLogin = "她是我在Bilibili上最喜欢的直播";
+                }
+
+                chatters.Add(new TwitchUser() { 
+                    SubTier = RandomGen.Next(100) < 10 ? SubscriberTier.Tier1 : SubscriberTier.None,
+                    IsBroadcaster = false,
+                    UserId = GenerateString("123456789", 8, 10),
+                    UserLogin = userLogin,
+                    UserName = userLogin
+                });
+            }
+
+            return chatters;
+#else
             string? paginationCursor = null;
             bool isInitialRequest = true;
             var chatters = new List<TwitchUser>();
@@ -83,6 +118,7 @@ namespace XComStreamApp.Services
 
             logger.LogInformation("Retrieved {numChatters} chatters across {numPages} pages", chatters.Count, numPages);
             return chatters;
+#endif
         }
 
         public async Task<List<TwitchUser>> GetSubscribers(string broadcasterId)
@@ -211,5 +247,20 @@ namespace XComStreamApp.Services
 
             return Math.Min(60000, (int) (DateTime.UtcNow - resetDateTime).TotalMilliseconds);
         }
+
+#if MOCK_CHATTERS
+        private string GenerateString(string allowedChars, int minLength, int maxLength)
+        {
+            int length = minLength + RandomGen.Next(maxLength - minLength + 1);
+            var chars = new char[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                chars[i] = allowedChars[RandomGen.Next(allowedChars.Length)];
+            }
+
+            return new string(chars);
+        }
+#endif
     }
 }
